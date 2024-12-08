@@ -1,9 +1,10 @@
 # mobile_manipulator
-This is a ROS2 package for MiR 250 + UR5e + Realsense D435i with ros2_control, Gazebo and Ignition Gazebo simulation.
+This is a ROS2 package for MiR 250 + UR5e + Realsense D435i with ros2_control, Gazebo Classic simulation.
 
 ![alt text](mobile_manipulator.png)
 ![alt text](moveit2.png)
 
+Note: Gazebo Classic will be EOL from Jan 2025, so hence there won't be support for gazebo classic. Unfortunately, there is no immediate plans of moving this to Ignition gazebo for now
 
 # Installation
 
@@ -11,11 +12,13 @@ This is a ROS2 package for MiR 250 + UR5e + Realsense D435i with ros2_control, G
 ## ROS2
 If you haven't already installed [ROS2](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html) on your PC, you need to add the ROS2 apt repository.
 
-Also install ros2-control and ros2-controllers
+Also install ros2-control, ros2-controllers, gazebo-ros-pkgs(usually installed), gazebo-ros2-control
 
 ```
 sudo apt-get install ros-humble-ros2-control
 sudo apt-get install ros-humble-ros2-controllers
+sudo apt-get install ros-humble-gazebo-ros-pkgs
+sudo apt-get install ros-humble-gazebo-ros2-control
 ```
 ## Source install
 ```
