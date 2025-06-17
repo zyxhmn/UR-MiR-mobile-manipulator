@@ -19,6 +19,7 @@
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>controller_manager</exec_depend>
+  <exec_depend>rclpy</exec_depend>
 
   <depend>gazebo</depend>
   <depend>gazebo_ros</depend>
