@@ -1,27 +1,17 @@
-# mobile_manipulator
-This is a ROS2 package for MiR 250 + UR5e + Realsense D435i with ros2_control, Gazebo Classic simulation.
+## 安装
 
-![alt text](mobile_manipulator.png)
-![alt text](moveit2.png)
+安装ros2及以下软件包：
 
-Note: Gazebo Classic will be EOL from Jan 2025, so hence there won't be support for gazebo classic. Unfortunately, there is no immediate plans of moving this to Ignition gazebo for now
-
-# Installation
-
-## Preliminaries
-## ROS2
-If you haven't already installed [ROS2](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html) on your PC, you need to add the ROS2 apt repository.
-
-Also install ros2-control, ros2-controllers, gazebo-ros-pkgs(usually installed), gazebo-ros2-control
-
-```
+```bash
 sudo apt-get install ros-humble-ros2-control
 sudo apt-get install ros-humble-ros2-controllers
 sudo apt-get install ros-humble-gazebo-ros-pkgs
 sudo apt-get install ros-humble-gazebo-ros2-control
 ```
-## Source install
-```
+
+编译源码安装
+
+```bash
 # create a ros2 workspace
 mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws/
@@ -43,46 +33,47 @@ rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
 source /opt/ros/humble/setup.bash
 cd ~/ros2_ws
 colcon build
-```
-You must source the workspace in each terminal you want to work in:
-```
+
+.bashrc中添加
 source ~/ros2_ws/install/setup.bash
-```
-Also make sure to run this in order to avoid problems with Gazebo (SEE NOTES)
-```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/home/sea/.gazebo/models
+LC_NUMERIC=en_US.UTF-8
 . /usr/share/gazebo/setup.sh
 ```
 
-# Gazebo demo (mapping)
-```
-### gazebo: 
-ros2 launch mir_gazebo mobile_manipulator.launch.py world:=maze
+## 建图
 
-### mapping (slam_toolbox)
+```bash
+# 打开gazebo以及rviz
+ros2 launch mir_gazebo mobile_manipulator.launch.py world:=office
+# world可选择office,cafe,
+
+# 建图
 ros2 launch mir_navigation mapping.py use_sim_time:=true slam_params_file:=$(ros2 pkg prefix mir_navigation)/share/mir_navigation/config/mir_mapping_async_sim.yaml
 
-### navigation (optional)
-ros2 launch mir_navigation navigation.py use_sim_time:=true cmd_vel_w_prefix:=/diff_cont/cmd_vel_unstamped
+# 保存地图
+ros2 run nav2_map_server map_saver_cli -f <path>
 ```
 
-# Gazebo demo (Navigation with existing map)
-```
-### gazebo:
-ros2 launch mir_gazebo mobile_manipulator.launch.py world:=maze rviz_config_file:=$(ros2 pkg prefix mir_navigation)/share/mir_navigation/rviz/mir_nav.rviz
+## Gazebo导航
 
-
-### localization (existing map)
-ros2 launch mir_navigation amcl.py use_sim_time:=true map:=$(ros2 pkg prefix mir_navigation)/share/mir_navigation/maps/maze.yaml
-
-### navigation
+```bash
+# gazebo+rviz
+ros2 launch mir_gazebo mobile_manipulator.launch.py world:=office rviz_config_file:=$(ros2 pkg prefix mir_navigation)/share/mir_navigation/rviz/mir_nav.rviz
+# 加载已存在的地图
+ros2 launch mir_navigation amcl.py use_sim_time:=true map:=$HOME/ros2_ws/install/mir_gazebo/share/mir_gazebo/maps/office.yaml
+# nav导航服务
 ros2 launch mir_navigation navigation.py use_sim_time:=true
+# 启动节点
+ros2 run my_nav_pkg nav_cra
 ```
 
-# Manipulation using MoveIt2
+## TODO:Gazebo+MoveIt2
+
 ```
 ### gazebo:
-ros2 launch mir_gazebo mobile_manipulator.launch.py world:=maze
-
+ros2 launch mir_gazebo mobile_manipulator.launch.py world:=good
+ros2 launch mir_gazebo mobile_manipulator.launch.py world:=good rviz_config_file:=$(ros2 pkg prefix mir_navigation)/share/mir_navigation/rviz/mir_nav.rviz
 ### MoveIt2:
 ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e launch_rviz:=true prefix:=ur_ use_fake_hardware:=true use_sim_time:=true
 
@@ -90,45 +81,42 @@ ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e launch_rviz:=true
 /install/mir_gazebo/share/mir_gazebo/worlds/include/marker_0001
 
 ### Aruco tag recognition (Make sure to add camera img to Rviz before running this)
+ArUco 标签识别
 ros2 launch ros2_aruco aruco_recognition.launch.py
+功能：
+启动 ArUco 标签识别节点，通过摄像头检测环境中的 ArUco 标签（需提前在 RViz 中添加摄像头图像话题）。
+输出：
+发布标签的 ID 和位姿（/aruco_markers 话题）。
 
 ### Aruco pose to nav2 goal
+ArUco 位姿转导航目标
 ros2 run ros2_aruco aruco_pose_to_nav_goal
+功能：
+将检测到的 ArUco 标签位姿 转换为 Nav2 导航目标，控制 MiR 底盘移动至标签位置。
+依赖：
+需先启动 aruco_recognition 和 Nav2 导航栈。
 
 ### Aruco pose to manipulator goal
+ ArUco 位姿转机械臂目标
 ros2 run ros2_aruco aruco_pose_to_manipulate
+功能：
+将 ArUco 标签位姿转换为 机械臂末端执行器的目标位姿，控制 UR5e 抓取或操作标签附近的物体。
+依赖：
+MoveIt2 和 aruco_recognition 需正常运行。
 
 ### Origin pose to nav2 goal
 ./src/mir_robot/mir_navigation/nav2_test.py 
+原点位姿转导航目标
 
 ### Tranform aruco pose to ur_base_link
 ros2 run ros2_aruco aruco_pose_to_moveit
+ArUco 位姿转机械臂基坐标系
+功能：
+将 ArUco 标签的位姿（相对于摄像头）转换到 UR5e 基坐标系（ur_base_link），为 MoveIt2 提供机械臂可用的目标位姿。
+关键点：
+依赖 TF 树中 camera_link → ur_base_link 的坐标变换。
 
 ### hello_ur_moveit
 ros2 launch hello_moveit_ur hello_moveit_ur_launch.py 
 
-
 ```
-# Notes
-
-1. If you get an error with respect to Gazebo Classic: Cannot launch gzclient on a launch file - results in shared_ptr assertion error, 
-
-    All you have to do is, source the gazebo classic by`. /usr/share/gazebo/setup.sh`
-    and try again
-
-2. If you encounter an error with respect to launching the ur_moveit launch:  Exception caught while processing action 'loadRobotModel': parameter 'robot_description_planning.joint_limits.panda_joint1.max_velocity' has invalid type: Wrong parameter type, parameter {robot_description_planning.joint_limits.panda_joint1.max_velocity} is of type {double}, setting it to {string} is not allowed,
-
-    All you have to do is set `LC_NUMERIC=en_US.UTF-8` in your terminal and try again
-
-3. If you get an error about gazebo already open elsewhere, run this -
-
-    `killall gzserver `
-    
-## Acknowledgement
-
-The 3d files for MiR 250 is from [DFKI](https://github.com/DFKI-NI/mir_robot).
-The 3d model and plugins for UR5e are from [Universal_Robots_ROS2_Driver](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver).
-The Realsense plugin is from [PAL Robotics](https://github.com/pal-robotics/realsense_gazebo_plugin/tree/foxy-devel) and description from [Intel](https://github.com/IntelRealSense/realsense-ros).
-
-
-
